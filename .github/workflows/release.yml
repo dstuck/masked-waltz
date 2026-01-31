@@ -68,7 +68,7 @@ jobs:
         env:
           BUTLER_CREDENTIALS: ${{ secrets.BUTLER_API_KEY }}
           CHANNEL: webgl
-          ITCH_GAME: PROJECT_NAME
-          ITCH_USER: USER_NAME
+          ITCH_GAME: masked-waltz
+          ITCH_USER: drawacard
           PACKAGE: WebGL
 
