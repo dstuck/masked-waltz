@@ -7,6 +7,9 @@ Dancers flow around and you need to listen/watch for feedback when near target a
 
 Flow patterns marked on the ground showing which direction dancers will move. They overlap allowing you to move between flows.
 
+## Dance Movement
+Dancers are in pairs and each pair is in a rotating dance circle. There will be multiple overlapping dance circles so that dancers end up crossing paths. The circles will rotate and the dance pairs position should move with the parent but their rotation should not alter
+
 ## Controls
 Press alternating buttons on waltz beat: A B B, A B B
 Directional inputs control how fast or slow you move within the flow
@@ -19,13 +22,13 @@ Handling beat inputs: inputs span from half beat to half beat. Multiple or misse
 ## Implementation Plan
 
 v0.1 - sync music
-- [ ] Play song
-- [ ] Screen pulse on beat
+- [x] Play song
+- [x] Screen pulse on beat
 
 v0.2 - dancers
-- [ ] Dancers travel in a circle
-- [ ] Red square on one dancer specifies player
-- [ ] Movement input can shift the player's pair relative to circular dance
+- [x] Dancers travel in a circle but they do not rotate
+- [x] Red square on one dancer specifies player
+- [x] Movement input can shift the player's pair relative to circular dance
 
 v0.3 - rhythm inputs
 - [ ] Player stores 1-2-3 waltz beat
