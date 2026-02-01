@@ -28,3 +28,9 @@ If you want each particle to *look like* a heart:
 
 1. Select your particle **Material**.\n   - Find its main texture slot (usually **Base Map** or **MainTex**) and assign your heart texture.\n2. Select your `ParticleSystem`.\n   - In **Renderer**, set **Material** to that heart material.\n   - Use **Render Mode = Billboard**.
 
+## Troubleshooting: pulse color not changing
+
+`BeatPulseUI` tints **all Images/RawImages under the pulse object** by default (so multi-layer pulse frames tint consistently).
+
+- If you want explicit control, assign the set of images to `BeatPulseUI._tintTargets` (all 4 images in your frame).
+

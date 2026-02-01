@@ -11,16 +11,14 @@ public sealed class TruePartnerGameController : MonoBehaviour
     [SerializeField] private BeatPulseUI _beatPulse;
 
     [Header("Pulse Mapping (distance -> alpha/color)")]
-    [Tooltip("At distances >= this, pulse stays at the far values.")]
-    [SerializeField] private float _rampStartDistance = 3f;
+    [Tooltip("If <= 0, we use the initial distance to the target pair.")]
+    [SerializeField] private float _maxDistance = 0f;
     [SerializeField] private float _farPulseMaxAlpha = 0.05f;
     [SerializeField] private float _nearPulseMaxAlpha = 0.25f;
+    [SerializeField] private float _farPulseDurationSeconds = 0.10f;
+    [SerializeField] private float _nearPulseDurationSeconds = 0.28f;
     [SerializeField] private Color _farPulseColor = new Color(1f, 1f, 1f, 1f);
     [SerializeField] private Color _nearPulseColor = new Color(1f, 0.2f, 0.2f, 1f);
-    [Tooltip("1 = linear. >1 ramps slower near the edge, <1 ramps faster.")]
-    [SerializeField] private float _alphaRampPower = 1f;
-    [Tooltip("Use <1 to get red quickly once inside ramp distance.")]
-    [SerializeField] private float _colorRampPower = 0.5f;
 
     [Header("Target Selection")]
     [SerializeField, Min(1)] private int _pickFromFarthestN = 3;
@@ -63,6 +61,7 @@ public sealed class TruePartnerGameController : MonoBehaviour
         }
 
         SelectTarget();
+        SetupMaxDistanceIfNeeded();
         SetupDebugMarker();
     }
 
@@ -148,22 +147,25 @@ public sealed class TruePartnerGameController : MonoBehaviour
         }
 
         float dist = Vector2.Distance(_player.ControlledPair.transform.position, _targetPair.transform.position);
+        float maxDist = Mathf.Max(0.01f, _maxDistance);
 
-        float rampStart = Mathf.Max(0.01f, _rampStartDistance);
-        float t = Mathf.InverseLerp(rampStart, 0f, dist); // 0 far, 1 very close
+        // Linear with distance: t=0 at maxDist, t=1 at dist=0.
+        float t = Mathf.InverseLerp(maxDist, 0f, dist);
 
-        float alphaT = ApplyPower(t, _alphaRampPower);
-        float colorT = ApplyPower(t, _colorRampPower);
-
-        float maxAlpha = Mathf.Lerp(_farPulseMaxAlpha, _nearPulseMaxAlpha, alphaT);
-        _beatPulse.SetMaxAlpha(maxAlpha);
-        _beatPulse.SetColor(Color.Lerp(_farPulseColor, _nearPulseColor, colorT));
+        _beatPulse.SetMaxAlpha(Mathf.Lerp(_farPulseMaxAlpha, _nearPulseMaxAlpha, t));
+        _beatPulse.SetColor(Color.Lerp(_farPulseColor, _nearPulseColor, t));
+        _beatPulse.SetDurationSeconds(Mathf.Lerp(_farPulseDurationSeconds, _nearPulseDurationSeconds, t));
     }
 
-    private static float ApplyPower(float t, float power)
+    private void SetupMaxDistanceIfNeeded()
     {
-        float p = Mathf.Max(0.0001f, power);
-        return Mathf.Pow(Mathf.Clamp01(t), p);
+        if (_maxDistance > 0f || _player == null || _targetPair == null || _player.ControlledPair == null)
+        {
+            return;
+        }
+
+        float initial = Vector2.Distance(_player.ControlledPair.transform.position, _targetPair.transform.position);
+        _maxDistance = Mathf.Max(0.01f, initial);
     }
 
     private void CheckWin()

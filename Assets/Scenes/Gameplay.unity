@@ -491,11 +491,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -5.88
+      value: -9
       objectReference: {fileID: 0}
     - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 5.25
+      value: 4.4
       objectReference: {fileID: 0}
     - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
       propertyPath: m_LocalPosition.z
@@ -532,6 +532,10 @@ PrefabInstance:
     - target: {fileID: 6058936989984268678, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
       propertyPath: m_Name
       value: DanceCircle2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8398452235451016265, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
+      propertyPath: _degreesPerSecond
+      value: 20
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -10405,6 +10409,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _canvasGroup: {fileID: 674997749}
   _graphic: {fileID: 0}
+  _tintTargets: []
   _maxAlpha: 0.25
   _durationSeconds: 0.12
   _useUnscaledTime: 1
@@ -10432,10 +10437,6 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  _farMaxAlpha: 0.1
-  _nearMaxAlpha: 0.45
-  _farColor: {r: 1, g: 1, b: 1, a: 1}
-  _nearColor: {r: 1, g: 0.35, b: 0.35, a: 1}
 --- !u!1001 &748509305
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10845,16 +10846,21 @@ MonoBehaviour:
   _player: {fileID: 45184434}
   _beatClock: {fileID: 667972847}
   _beatPulse: {fileID: 674997750}
-  _minDistance: 0
-  _maxDistance: 3
+  _maxDistance: 0
+  _farPulseMaxAlpha: 0.05
+  _nearPulseMaxAlpha: 1
+  _farPulseDurationSeconds: 0.1
+  _nearPulseDurationSeconds: 0.28
+  _farPulseColor: {r: 1, g: 1, b: 1, a: 1}
+  _nearPulseColor: {r: 1, g: 0.2, b: 0.2, a: 1}
   _pickFromFarthestN: 5
   _winText: {fileID: 602050870}
   _winDelaySeconds: 1
   _restartDelaySeconds: 5
   _winParticlesPrefab: {fileID: 1115403598442823399, guid: e5ce8571199db445995b5fb15150c4e7, type: 3}
-  _showTargetMarker: 1
+  _showTargetMarker: 0
   _targetMarkerSprite: {fileID: -1500434286138515679, guid: 3ba2e23fc8fb2428b98e2255cc3bab16, type: 3}
-  _targetMarkerLocalOffset: {x: 0, y: 0.8, z: 0}
+  _targetMarkerLocalOffset: {x: 0, y: 0.5, z: 0}
   _targetMarkerScale: 0.25
   _targetMarkerColor: {r: 0, g: 0.008023262, b: 1, a: 0.9}
 --- !u!4 &1223367375
@@ -10974,6 +10980,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _canvasGroup: {fileID: 0}
   _graphic: {fileID: 0}
+  _tintTargets: []
   _maxAlpha: 0.25
   _durationSeconds: 0.12
   _useUnscaledTime: 1
@@ -11001,10 +11008,6 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  _farMaxAlpha: 0.1
-  _nearMaxAlpha: 0.45
-  _farColor: {r: 1, g: 1, b: 1, a: 1}
-  _nearColor: {r: 1, g: 0.35, b: 0.35, a: 1}
 --- !u!225 &1618497234
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -11194,6 +11197,67 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8469358348478936786, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
   m_PrefabInstance: {fileID: 541221196158123593}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1988288250
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.7
+      objectReference: {fileID: 0}
+    - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6058936989984268678, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
+      propertyPath: m_Name
+      value: DanceCircle3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8398452235451016265, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
+      propertyPath: _degreesPerSecond
+      value: 20
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
 --- !u!1 &2028651026
 GameObject:
   m_ObjectHideFlags: 0
@@ -11509,11 +11573,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: -3.5
       objectReference: {fileID: 0}
     - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -0.9
       objectReference: {fileID: 0}
     - target: {fileID: 3243154078439113836, guid: c716db80609ec4ff7be1651024df83b3, type: 3}
       propertyPath: m_LocalPosition.z
@@ -11572,6 +11636,7 @@ SceneRoots:
   - {fileID: 1223367375}
   - {fileID: 541221196158123593}
   - {fileID: 483342808}
+  - {fileID: 1988288250}
   - {fileID: 45184435}
   - {fileID: 1138500168}
   - {fileID: 230591138}
