@@ -46,6 +46,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca1bd50de05824e46a162cca6cea026b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _leadRenderer: {fileID: 0}
+  _followerRenderer: {fileID: 0}
+  _maxSeparationOffsetX: 0.6
+  _inPairLerpSpeed: 18
 --- !u!1001 &2195492887536963858
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -54,6 +58,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3514647620970578876}
     m_Modifications:
+    - target: {fileID: 5117561110093565368, guid: 048daa953a1584a4ea3b49b70c7a361c, type: 3}
+      propertyPath: m_FlipX
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6532581953477080394, guid: 048daa953a1584a4ea3b49b70c7a361c, type: 3}
       propertyPath: m_Name
       value: DancerFollower

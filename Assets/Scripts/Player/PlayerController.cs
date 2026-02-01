@@ -8,6 +8,20 @@ public sealed class PlayerController : MonoBehaviour
     [SerializeField] private DancePairController _controlledPair;
     [SerializeField] private float _moveSpeedUnitsPerSecond = 2f;
 
+    [Header("Movement")]
+    [SerializeField] private float _moveDirectionDeadzone = 0.2f;
+
+    [Header("In-Pair Motion (Apart/Together)")]
+    [SerializeField] private float _inPairStepDistanceUnits = 0.15f;
+
+    [Header("NPC In-Pair Auto Step (ATT)")]
+    [SerializeField] private bool _enableNpcInPairAutoStep = true;
+    [SerializeField] private float _npcInPairStepDistanceUnits = 0.12f;
+
+    [Header("Partner Swap (AAA)")]
+    [SerializeField] private float _partnerSwapMaxDistance = 4f;
+    [SerializeField, Range(5f, 90f)] private float _partnerSwapConeHalfAngleDegrees = 35f;
+
     [Header("Rhythm")]
     [SerializeField] private BeatClock _beatClock;
     [SerializeField] private PlayerMarker _playerMarker;
@@ -38,6 +52,9 @@ public sealed class PlayerController : MonoBehaviour
     // If set, movement input is ignored while CurrentBeatIndex < _movementLockoutUntilBeatIndex.
     private int _movementLockoutUntilBeatIndex = int.MinValue;
 
+    private Vector2 _lastNonZeroMoveDirection = Vector2.zero;
+    private bool _markerOnLead = true;
+
     private void OnEnable()
     {
         _actions = new InputSystem_Actions();
@@ -51,6 +68,9 @@ public sealed class PlayerController : MonoBehaviour
             _beatClock.BeatTick += OnBeatTick;
             _beatClock.MeasureStartTick += OnMeasureStartTick;
         }
+
+        // Ensure marker is attached to the currently-controlled pair on enable.
+        AttachMarkerToControlledPair();
     }
 
     private void OnDisable()
@@ -79,7 +99,10 @@ public sealed class PlayerController : MonoBehaviour
         }
 
         bool movementLocked = IsMovementLocked();
-        Vector2 move = _actions.Player.Move.ReadValue<Vector2>();
+        Vector2 rawMove = _actions.Player.Move.ReadValue<Vector2>();
+        UpdateLastNonZeroMoveDirection(rawMove);
+
+        Vector2 move = rawMove;
         if (movementLocked)
         {
             move = Vector2.zero;
@@ -96,7 +119,10 @@ public sealed class PlayerController : MonoBehaviour
             return;
         }
 
-        RecordBucketInput(BeatBucketInput.Apart);
+        if (RecordBucketInput(BeatBucketInput.Apart, out int beatIndex))
+        {
+            TryApplyInPairStep(BeatBucketInput.Apart, beatIndex);
+        }
     }
 
     private void OnTogetherPerformed(InputAction.CallbackContext context)
@@ -106,20 +132,25 @@ public sealed class PlayerController : MonoBehaviour
             return;
         }
 
-        RecordBucketInput(BeatBucketInput.Together);
+        if (RecordBucketInput(BeatBucketInput.Together, out int beatIndex))
+        {
+            TryApplyInPairStep(BeatBucketInput.Together, beatIndex);
+        }
     }
 
-    private void RecordBucketInput(BeatBucketInput input)
+    private bool RecordBucketInput(BeatBucketInput input, out int beatIndex)
     {
+        beatIndex = -1;
+
         if (_beatClock == null || !_beatClock.IsReady)
         {
-            return;
+            return false;
         }
 
-        int beatIndex = _beatClock.GetNearestBeatIndex();
+        beatIndex = _beatClock.GetNearestBeatIndex();
         if (beatIndex < 0)
         {
-            return;
+            return false;
         }
 
         int measureStartBeatIndex = beatIndex - (beatIndex % 3);
@@ -133,7 +164,7 @@ public sealed class PlayerController : MonoBehaviour
         int slot = beatIndex - measureStartBeatIndex; // 0..2
         if (slot < 0 || slot > 2)
         {
-            return;
+            return false;
         }
 
         BeatBucketInput existing = buffer.Inputs[slot];
@@ -141,11 +172,13 @@ public sealed class PlayerController : MonoBehaviour
         if (existing == BeatBucketInput.None)
         {
             buffer.Inputs[slot] = input;
+            return true;
         }
         else
         {
             // Multiple presses in the same bucket mark that beat invalid.
             buffer.Inputs[slot] = BeatBucketInput.Invalid;
+            return false;
         }
     }
 
@@ -157,6 +190,14 @@ public sealed class PlayerController : MonoBehaviour
         }
 
         _currentWaltzStep = (beatIndex % 3) + 1;
+
+        // Non-player pairs should auto-step ATT each measure.
+        // BeatClock invokes BeatTick before MeasureStartTick on downbeats, and we reset on MeasureStartTick,
+        // so we apply the downbeat 'A' step in MeasureStartTick and only do beats 2 & 3 here.
+        if (_enableNpcInPairAutoStep && _currentWaltzStep != 1)
+        {
+            ApplyNpcInPairAutoStep(beatInMeasure: _currentWaltzStep);
+        }
     }
 
     private void OnMeasureStartTick(int downbeatBeatIndex)
@@ -176,10 +217,33 @@ public sealed class PlayerController : MonoBehaviour
         if (!isValid)
         {
             _playerMarker?.Flicker();
+            // Invalid sequences reset the dancers within the pair immediately (no world teleport).
+            _controlledPair?.ResetDancersToHome(snap: true);
 
             // Stumble: lose movement control for the entire next measure (the measure that just started).
             // downbeatBeatIndex is the start of the current (next) measure.
             _movementLockoutUntilBeatIndex = downbeatBeatIndex + 3;
+        }
+        else
+        {
+            // Apply measure-boundary actions based on the just-finished measure pattern.
+            if (pattern == "AAA")
+            {
+                TrySwapControlledPairInMoveDirection();
+            }
+            else if (pattern == "TTT")
+            {
+                ToggleLeaderFollower();
+            }
+        }
+
+        // Always reset in-pair motion at measure boundaries so it cannot drift between measures.
+        _controlledPair?.ResetDancersToHome(snap: false);
+
+        if (_enableNpcInPairAutoStep)
+        {
+            // Measure start is the downbeat. Apply the 'A' step for NPC pairs after resets so it sticks.
+            ApplyNpcInPairAutoStep(beatInMeasure: 1);
         }
 
         // Drop the previous measure so we only keep recent buffers.
@@ -218,6 +282,184 @@ public sealed class PlayerController : MonoBehaviour
         }
 
         return _validPatterns.Contains(pattern);
+    }
+
+    private void UpdateLastNonZeroMoveDirection(Vector2 rawMove)
+    {
+        float deadzone = Mathf.Clamp01(_moveDirectionDeadzone);
+        if (rawMove.sqrMagnitude < (deadzone * deadzone))
+        {
+            return;
+        }
+
+        _lastNonZeroMoveDirection = rawMove.normalized;
+    }
+
+    private void TrySwapControlledPairInMoveDirection()
+    {
+        if (_controlledPair == null)
+        {
+            return;
+        }
+
+        // Directional requirement: only swap if we have a recent non-zero move direction.
+        if (_lastNonZeroMoveDirection == Vector2.zero)
+        {
+            return;
+        }
+
+        DancePairController target = FindBestPairInDirection(_controlledPair, _lastNonZeroMoveDirection);
+        if (target == null)
+        {
+            return;
+        }
+
+        // Reset old pair to home so it doesn't keep its player offset.
+        _controlledPair.ResetToHome();
+        _controlledPair.ResetDancersToHome();
+
+        _controlledPair = target;
+        AttachMarkerToControlledPair();
+    }
+
+    private void TryApplyInPairStep(BeatBucketInput input, int beatIndex)
+    {
+        if (_controlledPair == null)
+        {
+            return;
+        }
+
+        // Stumble means you can't act (including in-pair motion), but we still record inputs for UI/validation.
+        if (IsMovementLocked())
+        {
+            return;
+        }
+
+        if (input != BeatBucketInput.Apart && input != BeatBucketInput.Together)
+        {
+            return;
+        }
+
+        int beatInMeasure = (beatIndex % 3) + 1; // 1..3
+        // Downbeat is larger; offbeats are half as big.
+        float stepScale = beatInMeasure == 1 ? 2f : 1f;
+
+        float signed = input == BeatBucketInput.Apart ? 1f : -1f;
+        float step = Mathf.Max(0f, _inPairStepDistanceUnits) * stepScale * signed;
+
+        _controlledPair.ApplyInPairSignedStep(step);
+    }
+
+    private void ApplyNpcInPairAutoStep(int beatInMeasure)
+    {
+        if (_beatClock == null || !_beatClock.IsReady)
+        {
+            return;
+        }
+
+        float stepBase = Mathf.Max(0f, _npcInPairStepDistanceUnits);
+        if (stepBase <= 0f)
+        {
+            return;
+        }
+
+        float signedStep = beatInMeasure == 1 ? stepBase : -stepBase; // ATT
+
+        // Downbeat is stronger (2x), matching player in-pair logic.
+        if (beatInMeasure == 1)
+        {
+            signedStep *= 2f;
+        }
+
+        DancePairController[] pairs = FindObjectsByType<DancePairController>(FindObjectsSortMode.None);
+        if (pairs == null || pairs.Length == 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < pairs.Length; i++)
+        {
+            DancePairController p = pairs[i];
+            if (p == null || p == _controlledPair)
+            {
+                continue;
+            }
+
+            p.ApplyInPairSignedStep(signedStep);
+        }
+    }
+
+    private DancePairController FindBestPairInDirection(DancePairController current, Vector2 dir)
+    {
+        float maxDist = Mathf.Max(0.01f, _partnerSwapMaxDistance);
+        float coneHalfAngle = Mathf.Clamp(_partnerSwapConeHalfAngleDegrees, 0.01f, 179f);
+        float minDot = Mathf.Cos(coneHalfAngle * Mathf.Deg2Rad);
+
+        Vector2 origin = current != null ? (Vector2)current.transform.position : Vector2.zero;
+        Vector2 direction = dir.normalized;
+
+        DancePairController[] pairs = FindObjectsByType<DancePairController>(FindObjectsSortMode.None);
+        if (pairs == null || pairs.Length == 0)
+        {
+            return null;
+        }
+
+        DancePairController best = null;
+        float bestScore = float.NegativeInfinity;
+
+        for (int i = 0; i < pairs.Length; i++)
+        {
+            DancePairController p = pairs[i];
+            if (p == null || p == current)
+            {
+                continue;
+            }
+
+            Vector2 to = (Vector2)p.transform.position - origin;
+            float dist = to.magnitude;
+            if (dist <= 0.0001f || dist > maxDist)
+            {
+                continue;
+            }
+
+            float dot = Vector2.Dot(direction, to / dist);
+            if (dot < minDot)
+            {
+                continue;
+            }
+
+            // Prefer closer and better aligned.
+            float score = dot / (0.001f + dist);
+            if (score > bestScore)
+            {
+                bestScore = score;
+                best = p;
+            }
+        }
+
+        return best;
+    }
+
+    private void ToggleLeaderFollower()
+    {
+        _markerOnLead = !_markerOnLead;
+        AttachMarkerToControlledPair();
+    }
+
+    private void AttachMarkerToControlledPair()
+    {
+        if (_playerMarker == null || _controlledPair == null)
+        {
+            return;
+        }
+
+        SpriteRenderer targetRenderer = _controlledPair.GetRenderer(_markerOnLead);
+        if (targetRenderer == null)
+        {
+            return;
+        }
+
+        _playerMarker.AttachTo(targetRenderer);
     }
 
     public void SetControlledPair(DancePairController newPair, bool resetOffset)

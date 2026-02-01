@@ -45,11 +45,30 @@ public sealed class PlayerMarker : MonoBehaviour
             _targetRenderer = GetComponentInParent<SpriteRenderer>();
         }
 
-        if (_targetRenderer != null)
+        RefreshSortingFromTarget();
+    }
+
+    public void AttachTo(SpriteRenderer newTargetRenderer)
+    {
+        if (newTargetRenderer == null)
         {
-            _markerRenderer.sortingLayerID = _targetRenderer.sortingLayerID;
-            _markerRenderer.sortingOrder = _targetRenderer.sortingOrder + _sortingOrderOffset;
+            return;
         }
+
+        if (_markerRenderer == null)
+        {
+            _markerRenderer = GetComponent<SpriteRenderer>();
+        }
+
+        _targetRenderer = newTargetRenderer;
+
+        // Parent under the dancer so local offset works as intended.
+        transform.SetParent(newTargetRenderer.transform, worldPositionStays: false);
+        transform.localPosition = _localOffset;
+        transform.localRotation = Quaternion.identity;
+        transform.localScale = new Vector3(_size, _size, 1f);
+
+        RefreshSortingFromTarget();
     }
 
     public void Flicker()
@@ -75,6 +94,22 @@ public sealed class PlayerMarker : MonoBehaviour
         }
 
         _flickerRoutine = StartCoroutine(FlickerRoutine());
+    }
+
+    private void RefreshSortingFromTarget()
+    {
+        if (_markerRenderer == null)
+        {
+            _markerRenderer = GetComponent<SpriteRenderer>();
+        }
+
+        if (_markerRenderer == null || _targetRenderer == null)
+        {
+            return;
+        }
+
+        _markerRenderer.sortingLayerID = _targetRenderer.sortingLayerID;
+        _markerRenderer.sortingOrder = _targetRenderer.sortingOrder + _sortingOrderOffset;
     }
 
     private IEnumerator FlickerRoutine()
