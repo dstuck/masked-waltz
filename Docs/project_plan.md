@@ -45,9 +45,11 @@ v0.4 - partner swapping
 - [x] Non-player pairs automatically step **`ATT`** (Away, Together, Together) each measure
 
 v0.5 - true partner
-- [ ] True partner is selected at start of game from a distant dancer
-- [ ] The UI beat pulse changes based on how close you are to the target
-- [ ] Response when you find your partner
+- [x] True partner target is selected at start of game from a **random distant pair** (random dancer on that pair), with an optional **debug marker toggle**
+- [x] The UI beat pulse becomes stronger (higher alpha) and red-er based on how close you are to the target
+- [x] Win when you take control of the target pair: control stops, win hearts particles can play, after 3 seconds “You win” appears and 3 seconds later it restarts the game
+
+Setup: see `Docs/v0_5_true_partner_setup.md`
 
 v0.6 - cleanup
 - [ ] Dancing pair return back to their standard spots when not player controlled

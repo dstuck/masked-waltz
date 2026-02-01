@@ -1,9 +1,15 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
 public sealed class BeatPulseUI : MonoBehaviour
 {
     [SerializeField] private CanvasGroup _canvasGroup;
+    [Tooltip("Optional. If set, this is the legacy single target.")]
+    [SerializeField] private Graphic _graphic;
+
+    [Tooltip("Optional. If set, all of these will be tinted together.")]
+    [SerializeField] private Graphic[] _tintTargets;
 
     [Header("Pulse")]
     [SerializeField] private float _maxAlpha = 0.25f;
@@ -16,6 +22,8 @@ public sealed class BeatPulseUI : MonoBehaviour
     private void Reset()
     {
         _canvasGroup = GetComponent<CanvasGroup>();
+        _graphic = GetComponent<Graphic>();
+        _tintTargets = GetDefaultTintTargets();
     }
 
     private void Awake()
@@ -25,10 +33,95 @@ public sealed class BeatPulseUI : MonoBehaviour
             _canvasGroup = GetComponent<CanvasGroup>();
         }
 
+        if (_tintTargets == null || _tintTargets.Length == 0)
+        {
+            _tintTargets = GetDefaultTintTargets();
+        }
+
         if (_canvasGroup != null)
         {
             _canvasGroup.alpha = 0f;
         }
+    }
+
+    public void SetMaxAlpha(float maxAlpha)
+    {
+        _maxAlpha = Mathf.Clamp01(maxAlpha);
+    }
+
+    public void SetDurationSeconds(float seconds)
+    {
+        _durationSeconds = Mathf.Max(0.0001f, seconds);
+    }
+
+    public void SetColor(Color c)
+    {
+        if (_tintTargets == null || _tintTargets.Length == 0)
+        {
+            // Legacy fallback.
+            if (_graphic == null)
+            {
+                _graphic = GetComponent<Graphic>();
+            }
+
+            if (_graphic == null)
+            {
+                return;
+            }
+
+            SetGraphicColor(_graphic, c);
+            return;
+        }
+
+        for (int i = 0; i < _tintTargets.Length; i++)
+        {
+            Graphic g = _tintTargets[i];
+            if (g == null)
+            {
+                continue;
+            }
+
+            SetGraphicColor(g, c);
+        }
+    }
+
+    private static void SetGraphicColor(Graphic g, Color c)
+    {
+        // Keep alpha driven by CanvasGroup; only update RGB.
+        Color current = g.color;
+        current.r = c.r;
+        current.g = c.g;
+        current.b = c.b;
+        current.a = 1f;
+        g.color = current;
+    }
+
+    private Graphic[] GetDefaultTintTargets()
+    {
+        // Tint all Images/RawImages under this pulse object by default.
+        // (Excludes TMP_Text so we don't accidentally tint text.)
+        Graphic[] all = GetComponentsInChildren<Graphic>(includeInactive: true);
+        if (all == null || all.Length == 0)
+        {
+            return System.Array.Empty<Graphic>();
+        }
+
+        var list = new System.Collections.Generic.List<Graphic>(all.Length);
+        for (int i = 0; i < all.Length; i++)
+        {
+            Graphic g = all[i];
+            if (g == null)
+            {
+                continue;
+            }
+
+            if (g is Image || g is RawImage)
+            {
+                list.Add(g);
+            }
+        }
+
+        return list.ToArray();
     }
 
     public void Pulse()
