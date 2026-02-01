@@ -1,9 +1,11 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
 public sealed class BeatPulseUI : MonoBehaviour
 {
     [SerializeField] private CanvasGroup _canvasGroup;
+    [SerializeField] private Graphic _graphic;
 
     [Header("Pulse")]
     [SerializeField] private float _maxAlpha = 0.25f;
@@ -16,6 +18,7 @@ public sealed class BeatPulseUI : MonoBehaviour
     private void Reset()
     {
         _canvasGroup = GetComponent<CanvasGroup>();
+        _graphic = GetComponent<Graphic>();
     }
 
     private void Awake()
@@ -25,10 +28,36 @@ public sealed class BeatPulseUI : MonoBehaviour
             _canvasGroup = GetComponent<CanvasGroup>();
         }
 
+        if (_graphic == null)
+        {
+            _graphic = GetComponent<Graphic>();
+        }
+
         if (_canvasGroup != null)
         {
             _canvasGroup.alpha = 0f;
         }
+    }
+
+    public void SetMaxAlpha(float maxAlpha)
+    {
+        _maxAlpha = Mathf.Clamp01(maxAlpha);
+    }
+
+    public void SetColor(Color c)
+    {
+        if (_graphic == null)
+        {
+            return;
+        }
+
+        // Keep alpha driven by CanvasGroup; only update RGB.
+        Color current = _graphic.color;
+        current.r = c.r;
+        current.g = c.g;
+        current.b = c.b;
+        current.a = 1f;
+        _graphic.color = current;
     }
 
     public void Pulse()

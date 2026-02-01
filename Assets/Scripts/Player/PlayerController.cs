@@ -27,6 +27,7 @@ public sealed class PlayerController : MonoBehaviour
     [SerializeField] private PlayerMarker _playerMarker;
 
     private InputSystem_Actions _actions;
+    private bool _inputEnabled = true;
 
     private enum BeatBucketInput
     {
@@ -93,7 +94,7 @@ public sealed class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        if (_actions == null || _controlledPair == null)
+        if (_actions == null || _controlledPair == null || !_inputEnabled)
         {
             return;
         }
@@ -119,6 +120,11 @@ public sealed class PlayerController : MonoBehaviour
             return;
         }
 
+        if (!_inputEnabled)
+        {
+            return;
+        }
+
         if (RecordBucketInput(BeatBucketInput.Apart, out int beatIndex))
         {
             TryApplyInPairStep(BeatBucketInput.Apart, beatIndex);
@@ -128,6 +134,11 @@ public sealed class PlayerController : MonoBehaviour
     private void OnTogetherPerformed(InputAction.CallbackContext context)
     {
         if (!context.performed)
+        {
+            return;
+        }
+
+        if (!_inputEnabled)
         {
             return;
         }
@@ -465,6 +476,13 @@ public sealed class PlayerController : MonoBehaviour
     public void SetControlledPair(DancePairController newPair, bool resetOffset)
     {
         _controlledPair = newPair;
+    }
+
+    public DancePairController ControlledPair => _controlledPair;
+
+    public void SetInputEnabled(bool enabled)
+    {
+        _inputEnabled = enabled;
     }
 
     public int CurrentWaltzStep => _currentWaltzStep;
