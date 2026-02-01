@@ -51,7 +51,6 @@ public sealed class PlayerController : MonoBehaviour
 
     // If set, movement input is ignored while CurrentBeatIndex < _movementLockoutUntilBeatIndex.
     private int _movementLockoutUntilBeatIndex = int.MinValue;
-    private float _movementLockoutUntilTime = float.NegativeInfinity;
 
     private Vector2 _lastNonZeroMoveDirection = Vector2.zero;
     private bool _markerOnLead = true;
@@ -224,7 +223,6 @@ public sealed class PlayerController : MonoBehaviour
             // Stumble: lose movement control for the entire next measure (the measure that just started).
             // downbeatBeatIndex is the start of the current (next) measure.
             _movementLockoutUntilBeatIndex = downbeatBeatIndex + 3;
-            _movementLockoutUntilTime = Time.time + GetMeasureDurationSecondsFallback();
         }
         else
         {
@@ -518,49 +516,25 @@ public sealed class PlayerController : MonoBehaviour
 
     private bool IsMovementLocked()
     {
-        if (_movementLockoutUntilBeatIndex == int.MinValue)
+        if (_movementLockoutUntilBeatIndex == int.MinValue || _beatClock == null || !_beatClock.IsReady)
         {
-            return false;
-        }
-
-        // If the beat clock isn't usable, don't soft-lock movement forever.
-        if (_beatClock == null || !_beatClock.IsReady)
-        {
-            ClearMovementLockout();
             return false;
         }
 
         int beatIndex = _beatClock.CurrentBeatIndex;
-        bool beatWindowExpired = beatIndex >= 0 && beatIndex >= _movementLockoutUntilBeatIndex;
-        bool timeWindowExpired = !float.IsFinite(_movementLockoutUntilTime) || Time.time >= _movementLockoutUntilTime;
-
-        // Clear as soon as either window has definitely elapsed.
-        if (beatWindowExpired || timeWindowExpired)
+        if (beatIndex < 0)
         {
-            ClearMovementLockout();
             return false;
         }
 
-        // If we can't compute beat progress yet (e.g., negative beat index from offset),
-        // fall back to the time window.
+        // Automatically clear when we’ve passed the lockout window.
+        if (beatIndex >= _movementLockoutUntilBeatIndex)
+        {
+            _movementLockoutUntilBeatIndex = int.MinValue;
+            return false;
+        }
+
         return true;
-    }
-
-    private void ClearMovementLockout()
-    {
-        _movementLockoutUntilBeatIndex = int.MinValue;
-        _movementLockoutUntilTime = float.NegativeInfinity;
-    }
-
-    private float GetMeasureDurationSecondsFallback()
-    {
-        // One measure = beatsPerMeasure beats.
-        // If BPM isn't configured, pick a short fallback so we never lock forever.
-        float bpm = _beatClock != null ? _beatClock.Bpm : 0f;
-        float safeBpm = Mathf.Max(30f, bpm); // clamp to a sane minimum
-        float secondsPerBeat = 60f / safeBpm;
-        int beatsPerMeasure = _beatClock != null ? _beatClock.BeatsPerMeasure : 3;
-        return secondsPerBeat * Mathf.Max(1, beatsPerMeasure);
     }
 }
 
