@@ -35,6 +35,9 @@ public sealed class PlayerController : MonoBehaviour
 
     private int _currentWaltzStep = 1;
 
+    // If set, movement input is ignored while CurrentBeatIndex < _movementLockoutUntilBeatIndex.
+    private int _movementLockoutUntilBeatIndex = int.MinValue;
+
     private void OnEnable()
     {
         _actions = new InputSystem_Actions();
@@ -75,7 +78,13 @@ public sealed class PlayerController : MonoBehaviour
             return;
         }
 
+        bool movementLocked = IsMovementLocked();
         Vector2 move = _actions.Player.Move.ReadValue<Vector2>();
+        if (movementLocked)
+        {
+            move = Vector2.zero;
+        }
+
         Vector2 delta = move * (_moveSpeedUnitsPerSecond * Time.deltaTime);
         _controlledPair.ApplyWorldSpaceDelta(delta);
     }
@@ -167,6 +176,10 @@ public sealed class PlayerController : MonoBehaviour
         if (!isValid)
         {
             _playerMarker?.Flicker();
+
+            // Stumble: lose movement control for the entire next measure (the measure that just started).
+            // downbeatBeatIndex is the start of the current (next) measure.
+            _movementLockoutUntilBeatIndex = downbeatBeatIndex + 3;
         }
 
         // Drop the previous measure so we only keep recent buffers.
@@ -257,6 +270,29 @@ public sealed class PlayerController : MonoBehaviour
             BeatBucketInput.None => '_',
             _ => 'X'
         };
+    }
+
+    private bool IsMovementLocked()
+    {
+        if (_movementLockoutUntilBeatIndex == int.MinValue || _beatClock == null || !_beatClock.IsReady)
+        {
+            return false;
+        }
+
+        int beatIndex = _beatClock.CurrentBeatIndex;
+        if (beatIndex < 0)
+        {
+            return false;
+        }
+
+        // Automatically clear when we’ve passed the lockout window.
+        if (beatIndex >= _movementLockoutUntilBeatIndex)
+        {
+            _movementLockoutUntilBeatIndex = int.MinValue;
+            return false;
+        }
+
+        return true;
     }
 }
 
