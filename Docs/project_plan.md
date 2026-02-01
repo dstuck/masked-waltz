@@ -41,7 +41,8 @@ v0.3 - rhythm inputs
 v0.4 - partner swapping
 - [x] `AAA` pattern transfers player control to the nearest `DancePair` **in the held movement direction** (within distance / cone)
 - [x] `TTT` pattern swaps between **leader** and **follower** (moves the player marker between them)
-- [x] Player movement remains **simple world-space movement** from input, gated by **stumble lockout**; invalid patterns reset the controlled pair to center/home
+- [x] Player movement remains **simple world-space movement** from input, gated by **stumble lockout**; `Apart`/`Together` inputs move the **dancers within the pair** (towards/away, downbeat 2×) and **in-pair** offsets reset on invalid patterns and at every measure boundary (no world teleport)
+- [x] Non-player pairs automatically step **`ATT`** (Away, Together, Together) each measure
 
 v0.5 - true partner
 - [ ] True partner is selected at start of game from a distant dancer

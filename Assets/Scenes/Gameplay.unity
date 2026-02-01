@@ -253,6 +253,9 @@ MonoBehaviour:
   _controlledPair: {fileID: 1132984029}
   _moveSpeedUnitsPerSecond: 2
   _moveDirectionDeadzone: 0.2
+  _inPairStepDistanceUnits: 0.15
+  _enableNpcInPairAutoStep: 1
+  _npcInPairStepDistanceUnits: 0.12
   _partnerSwapMaxDistance: 4
   _partnerSwapConeHalfAngleDegrees: 35
   _beatClock: {fileID: 667972847}
