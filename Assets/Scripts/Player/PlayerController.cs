@@ -8,6 +8,13 @@ public sealed class PlayerController : MonoBehaviour
     [SerializeField] private DancePairController _controlledPair;
     [SerializeField] private float _moveSpeedUnitsPerSecond = 2f;
 
+    [Header("Movement")]
+    [SerializeField] private float _moveDirectionDeadzone = 0.2f;
+
+    [Header("Partner Swap (AAA)")]
+    [SerializeField] private float _partnerSwapMaxDistance = 4f;
+    [SerializeField, Range(5f, 90f)] private float _partnerSwapConeHalfAngleDegrees = 35f;
+
     [Header("Rhythm")]
     [SerializeField] private BeatClock _beatClock;
     [SerializeField] private PlayerMarker _playerMarker;
@@ -38,6 +45,9 @@ public sealed class PlayerController : MonoBehaviour
     // If set, movement input is ignored while CurrentBeatIndex < _movementLockoutUntilBeatIndex.
     private int _movementLockoutUntilBeatIndex = int.MinValue;
 
+    private Vector2 _lastNonZeroMoveDirection = Vector2.zero;
+    private bool _markerOnLead = true;
+
     private void OnEnable()
     {
         _actions = new InputSystem_Actions();
@@ -51,6 +61,9 @@ public sealed class PlayerController : MonoBehaviour
             _beatClock.BeatTick += OnBeatTick;
             _beatClock.MeasureStartTick += OnMeasureStartTick;
         }
+
+        // Ensure marker is attached to the currently-controlled pair on enable.
+        AttachMarkerToControlledPair();
     }
 
     private void OnDisable()
@@ -79,7 +92,10 @@ public sealed class PlayerController : MonoBehaviour
         }
 
         bool movementLocked = IsMovementLocked();
-        Vector2 move = _actions.Player.Move.ReadValue<Vector2>();
+        Vector2 rawMove = _actions.Player.Move.ReadValue<Vector2>();
+        UpdateLastNonZeroMoveDirection(rawMove);
+
+        Vector2 move = rawMove;
         if (movementLocked)
         {
             move = Vector2.zero;
@@ -176,10 +192,23 @@ public sealed class PlayerController : MonoBehaviour
         if (!isValid)
         {
             _playerMarker?.Flicker();
+            _controlledPair?.ResetToHome();
 
             // Stumble: lose movement control for the entire next measure (the measure that just started).
             // downbeatBeatIndex is the start of the current (next) measure.
             _movementLockoutUntilBeatIndex = downbeatBeatIndex + 3;
+        }
+        else
+        {
+            // Apply measure-boundary actions based on the just-finished measure pattern.
+            if (pattern == "AAA")
+            {
+                TrySwapControlledPairInMoveDirection();
+            }
+            else if (pattern == "TTT")
+            {
+                ToggleLeaderFollower();
+            }
         }
 
         // Drop the previous measure so we only keep recent buffers.
@@ -218,6 +247,116 @@ public sealed class PlayerController : MonoBehaviour
         }
 
         return _validPatterns.Contains(pattern);
+    }
+
+    private void UpdateLastNonZeroMoveDirection(Vector2 rawMove)
+    {
+        float deadzone = Mathf.Clamp01(_moveDirectionDeadzone);
+        if (rawMove.sqrMagnitude < (deadzone * deadzone))
+        {
+            return;
+        }
+
+        _lastNonZeroMoveDirection = rawMove.normalized;
+    }
+
+    private void TrySwapControlledPairInMoveDirection()
+    {
+        if (_controlledPair == null)
+        {
+            return;
+        }
+
+        // Directional requirement: only swap if we have a recent non-zero move direction.
+        if (_lastNonZeroMoveDirection == Vector2.zero)
+        {
+            return;
+        }
+
+        DancePairController target = FindBestPairInDirection(_controlledPair, _lastNonZeroMoveDirection);
+        if (target == null)
+        {
+            return;
+        }
+
+        // Reset old pair to home so it doesn't keep its player offset.
+        _controlledPair.ResetToHome();
+
+        _controlledPair = target;
+        AttachMarkerToControlledPair();
+    }
+
+    private DancePairController FindBestPairInDirection(DancePairController current, Vector2 dir)
+    {
+        float maxDist = Mathf.Max(0.01f, _partnerSwapMaxDistance);
+        float coneHalfAngle = Mathf.Clamp(_partnerSwapConeHalfAngleDegrees, 0.01f, 179f);
+        float minDot = Mathf.Cos(coneHalfAngle * Mathf.Deg2Rad);
+
+        Vector2 origin = current != null ? (Vector2)current.transform.position : Vector2.zero;
+        Vector2 direction = dir.normalized;
+
+        DancePairController[] pairs = FindObjectsByType<DancePairController>(FindObjectsSortMode.None);
+        if (pairs == null || pairs.Length == 0)
+        {
+            return null;
+        }
+
+        DancePairController best = null;
+        float bestScore = float.NegativeInfinity;
+
+        for (int i = 0; i < pairs.Length; i++)
+        {
+            DancePairController p = pairs[i];
+            if (p == null || p == current)
+            {
+                continue;
+            }
+
+            Vector2 to = (Vector2)p.transform.position - origin;
+            float dist = to.magnitude;
+            if (dist <= 0.0001f || dist > maxDist)
+            {
+                continue;
+            }
+
+            float dot = Vector2.Dot(direction, to / dist);
+            if (dot < minDot)
+            {
+                continue;
+            }
+
+            // Prefer closer and better aligned.
+            float score = dot / (0.001f + dist);
+            if (score > bestScore)
+            {
+                bestScore = score;
+                best = p;
+            }
+        }
+
+        return best;
+    }
+
+    private void ToggleLeaderFollower()
+    {
+        _markerOnLead = !_markerOnLead;
+        AttachMarkerToControlledPair();
+    }
+
+    private void AttachMarkerToControlledPair()
+    {
+        if (_playerMarker == null || _controlledPair == null)
+        {
+            return;
+        }
+
+        SpriteRenderer targetRenderer = _controlledPair.GetRenderer(_markerOnLead);
+        if (targetRenderer == null)
+        {
+            return;
+        }
+
+        _playerMarker.AttachTo(targetRenderer);
     }
 
     public void SetControlledPair(DancePairController newPair, bool resetOffset)
