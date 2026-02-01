@@ -31,9 +31,12 @@ v0.2 - dancers
 - [x] Movement input can shift the player's pair relative to circular dance
 
 v0.3 - rhythm inputs
-- [ ] Player stores 1-2-3 waltz beat
-- [ ] Player tracks 3 input pattern
-- [ ] Player flickers if not a valid ATT, TAA, AAA, or TTT input
+- [ ] Beat clock tracks **beats** and **half-beats** from the music `AudioSource` (sample-time based)
+- [ ] Use half-beats as the **bucket boundaries** (inputs are captured from half-beat to half-beat, centered on each beat)
+- [ ] Track **downbeat** (every 3 beats) and expose `beatInMeasure` as **1-2-3**
+- [ ] Player stores current waltz step (1-2-3) and the **last 3 beat inputs** for the current measure
+- [ ] Record `Apart` / `Together` presses into the current beat bucket; **multiple presses in one bucket** marks that beat invalid
+- [ ] At the end of each measure, validate pattern ∈ {`ATT`, `TAA`, `AAA`, `TTT`}; otherwise **player flickers**
 
 v0.4 - partner swapping
 - [ ] AAA pattern changes partners shifting the mask to the nearest dancing pair if within distance

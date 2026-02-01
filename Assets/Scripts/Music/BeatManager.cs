@@ -8,6 +8,9 @@ public sealed class BeatManager : MonoBehaviour
     [Header("Events")]
     [SerializeField] private Intervals[] _intervals;
 
+    public float Bpm => _bpm;
+    public AudioSource AudioSource => _audioSource;
+
     private void Update()
     {
         if (_audioSource == null || _audioSource.clip == null)
